@@ -1,0 +1,1974 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carrera Espacial</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; min-height: 100vh;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #fff; background: #050810; overflow-x: hidden; }
+  .hidden { display: none !important; }
+
+  /* ================= ADMIN ================= */
+  body.mode-admin { display: block; }
+  #adminView { min-height: 100vh; display: flex; flex-direction: column;
+    background: radial-gradient(circle at 20% 0%, #0d1424, #050810 60%); }
+  .admin-header {
+    padding: 14px 26px; border-bottom: 1px solid #1c2740;
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(10,16,28,.85); backdrop-filter: blur(8px);
+    flex-wrap: wrap; gap: 10px;
+  }
+  .admin-header .brand { display: flex; align-items: center; gap: 12px;
+    font-size: 19px; font-weight: 900; letter-spacing: .3px; }
+  .admin-header .brand .logo { font-size: 26px; }
+  .admin-header .brand small { display: block; font-size: 11.5px;
+    color: #7d8ba0; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .admin-header .badge { background: rgba(46,204,113,.12); color: #4ade80;
+    border: 1px solid rgba(46,204,113,.4); font-size: 12px; font-weight: 800;
+    padding: 5px 12px; border-radius: 999px; }
+  .admin-body { flex: 1; display: grid; grid-template-columns: 1fr 420px;
+    gap: 0; min-height: 0; }
+  @media (max-width: 1000px) { .admin-body { grid-template-columns: 1fr; } }
+
+  .admin-preview { padding: 22px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px;
+    background: radial-gradient(circle at 50% 40%, #0a1220, #050810 70%);
+    min-height: 500px; }
+  .admin-preview .previewLabel {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12.5px; font-weight: 800; letter-spacing: 1.2px;
+    color: #7d8ba0; text-transform: uppercase;
+  }
+  .admin-preview .previewLabel .liveDot {
+    width: 8px; height: 8px; border-radius: 50%; background: #4ade80;
+    box-shadow: 0 0 10px #4ade80; animation: pulse 1.6s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+  #previewFrame {
+    width: 800px; height: 600px; max-width: 100%;
+    border: 2px solid #1e2a3c; border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.7), 0 0 40px rgba(80,140,255,.08);
+    background: #000;
+  }
+
+  .admin-panel { padding: 22px 24px 30px; background: #0a0f1a;
+    border-left: 1px solid #1c2740; overflow-y: auto; }
+  .admin-panel h2 { font-size: 12.5px; font-weight: 900; color: #8fa0ba;
+    text-transform: uppercase; letter-spacing: 1.5px; margin: 0 0 14px;
+    display: flex; align-items: center; gap: 8px; }
+  .admin-panel h2::before { content: ''; width: 4px; height: 14px;
+    background: #ffd93d; border-radius: 2px; }
+  .panelSection { background: rgba(255,255,255,.025); border: 1px solid #1e2a3c;
+    border-radius: 14px; padding: 16px 16px 18px; margin-bottom: 16px; }
+  .panelSection .label { display: block; font-size: 12.5px; font-weight: 800;
+    color: #b9c5d6; margin-bottom: 8px; }
+  .panelSection .help { font-size: 12px; color: #7d8ba0;
+    margin: 8px 0 0; line-height: 1.5; }
+  .panelSection .help code { background: rgba(0,0,0,.4); padding: 1px 6px;
+    border-radius: 4px; color: #ffd93d; font-size: 11.5px; }
+
+  .field { display: flex; align-items: center; gap: 10px; }
+  .field input[type="number"] {
+    flex: 1; font-family: inherit; font-size: 16px; font-weight: 800;
+    padding: 11px 14px; border-radius: 10px;
+    background: #060b14; color: #fff; border: 1.5px solid #2a3a52;
+    outline: none; transition: .15s;
+  }
+  .field input[type="number"]:focus { border-color: #ffd93d;
+    box-shadow: 0 0 0 3px rgba(255,217,61,.12); }
+  .field .unit { color: #7d8ba0; font-weight: 800; font-size: 14px; }
+
+  .chipRow { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { font-family: inherit; font-size: 12.5px; font-weight: 800;
+    padding: 6px 12px; border-radius: 999px; border: 1.5px solid #2a3a52;
+    background: transparent; color: #a7b4c8; cursor: pointer; transition: .15s; }
+  .chip:hover { border-color: #4a5d80; color: #fff; }
+  .chip.active { background: rgba(255,217,61,.14); border-color: #ffd93d;
+    color: #ffd93d; }
+
+  .btn2 { font-family: inherit; font-size: 14px; font-weight: 900;
+    padding: 11px 18px; border-radius: 10px; border: none;
+    cursor: pointer; transition: .15s; letter-spacing: .3px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    width: 100%; }
+  .btn2.primary { background: linear-gradient(180deg, #ffd93d, #f5a623);
+    color: #21160a; box-shadow: 0 5px 0 #b87c10, 0 8px 22px rgba(245,166,35,.3); }
+  .btn2.primary:hover:not(:disabled) { transform: translateY(-2px);
+    box-shadow: 0 7px 0 #b87c10, 0 12px 26px rgba(245,166,35,.4); }
+  .btn2.primary:active:not(:disabled) { transform: translateY(2px);
+    box-shadow: 0 3px 0 #b87c10; }
+  .btn2.primary:disabled { opacity: .55; cursor: not-allowed; box-shadow: none;
+    transform: none; }
+  .btn2.secondary { background: #1a2434; color: #e9eef7;
+    border: 1.5px solid #2f3d55; box-shadow: 0 4px 0 #0c1420; }
+  .btn2.secondary:hover { background: #24334a; border-color: #4a5d80;
+    transform: translateY(-2px); box-shadow: 0 6px 0 #0c1420; }
+  .btn2.secondary:active { transform: translateY(2px); box-shadow: 0 2px 0 #0c1420; }
+  .btn2.ghost { background: transparent; color: #a7b4c8;
+    border: 1.5px solid #2a3a52; }
+  .btn2.ghost:hover { color: #fff; border-color: #4a5d80;
+    background: rgba(255,255,255,.03); }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .row1 { margin-top: 10px; }
+
+  .statRow { display: flex; align-items: center; justify-content: space-between;
+    font-size: 13.5px; padding: 6px 0; color: #b9c5d6;
+    border-bottom: 1px dashed rgba(255,255,255,.06); }
+  .statRow:last-child { border-bottom: none; }
+  .statRow b { color: #ffd93d; font-size: 15px; }
+
+  .feedback2 { font-size: 12.5px; font-weight: 700; line-height: 1.5;
+    margin-top: 10px; min-height: 16px; }
+  .feedback2.ok { color: #4ade80; }
+  .feedback2.bad { color: #ff7b6b; }
+
+  #linkOut {
+    width: 100%; font-family: 'Courier New', monospace;
+    font-size: 11.5px; padding: 11px 12px; border-radius: 10px;
+    background: #060b14; color: #ffd93d;
+    border: 1.5px solid #2a3a52; outline: none;
+    margin-bottom: 8px; line-height: 1.5; word-break: break-all;
+    resize: vertical; min-height: 60px;
+  }
+  #linkOut:focus { border-color: #ffd93d; }
+
+  .excelIcon {
+    display: inline-block;
+    background: linear-gradient(180deg, #1e6b3a, #0f5c2a);
+    color: #fff; font-weight: 900; font-size: 10px;
+    padding: 2px 6px; border-radius: 4px; margin-left: 4px;
+    letter-spacing: .5px;
+  }
+
+  /* ================= USER ================= */
+  body.mode-user {
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 50% 0%, #0d1424, #050810 70%);
+    padding: 12px;
+  }
+  #userView { position: relative; width: 800px; max-width: 100%;
+    user-select: none; -webkit-user-select: none; }
+  canvas { display: block; width: 100%; height: auto; border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.85), 0 0 0 2px #1e2a3c;
+    touch-action: none; cursor: grab; background: #000; }
+  canvas:active { cursor: grabbing; }
+
+  #hud { position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 18px; pointer-events: none; font-weight: 800;
+    font-size: 13.5px; text-shadow: 0 2px 10px rgba(0,0,0,.95); gap: 8px;
+    flex-wrap: wrap; }
+  #hud .stat { background: rgba(6,12,22,.6); border: 1px solid rgba(120,180,255,.18);
+    padding: 5px 11px; border-radius: 9px;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    white-space: nowrap; }
+  #hud .stat.warn { color: #ff6b6b; border-color: rgba(255,107,107,.5);
+    animation: warn 1s infinite; }
+  @keyframes warn { 0%,100% { opacity: 1 } 50% { opacity: .55 } }
+  #hud .stat b { color: #ffd93d; }
+  #playerNameHud { color: #7dd3fc; }
+  #dots { display: flex; gap: 5px; flex-wrap: wrap; max-width: 200px; }
+  .dot { width: 11px; height: 11px; border-radius: 50%;
+    background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.35);
+    transition: .25s; }
+  .dot.ok { background: #2ecc71; border-color: #2ecc71; box-shadow: 0 0 10px #2ecc71; }
+  .dot.now { transform: scale(1.4); border-color: #ffd93d; box-shadow: 0 0 12px #ffd93d; }
+
+  #hint { position: absolute; bottom: 12px; left: 0; right: 0;
+    text-align: center; font-size: 13px; font-weight: 600;
+    color: rgba(255,255,255,.85); pointer-events: none;
+    text-shadow: 0 2px 8px #000, 0 0 4px #000; transition: opacity .7s; }
+  #hint.fade { opacity: 0; }
+
+  .overlay { position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(4,7,14,.8); backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px); border-radius: 14px;
+    padding: 18px; animation: fadeIn .22s ease; overflow-y: auto; }
+  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+
+  .card { width: 100%; max-width: 580px;
+    background: linear-gradient(180deg, #0f1626, #0a0e18);
+    border: 1px solid #223047; border-radius: 18px;
+    padding: 22px 24px 20px;
+    box-shadow: 0 24px 70px rgba(0,0,0,.75); margin: auto; }
+  .card.center { text-align: center; max-width: 480px; }
+  .card h1 { margin: 0 0 6px; font-size: 30px; letter-spacing: .5px; }
+  .card h2 { margin: 0 0 16px; font-size: 19px; line-height: 1.4; font-weight: 800; }
+  .card .sub { color: #a7b4c8; font-size: 14.5px; line-height: 1.55; margin: 0 0 18px; }
+  .card .sub b { color: #ffd93d; }
+
+  .tag { display: inline-block;
+    background: rgba(125,211,252,.14); border: 1px solid rgba(125,211,252,.45);
+    color: #7dd3fc; font-size: 12.5px; font-weight: 800;
+    padding: 5px 13px; border-radius: 999px; margin-bottom: 12px; }
+
+  #qOptions { display: flex; flex-direction: column; gap: 9px; }
+  #qOptions button { font-family: inherit; font-size: 15.5px; font-weight: 700;
+    text-align: left; color: #e9eef7; background: #172133;
+    border: 1.5px solid #2c3b57; border-radius: 11px;
+    padding: 12px 15px; cursor: pointer; transition: .15s;
+    display: flex; align-items: center; gap: 12px; }
+  #qOptions button .key { width: 24px; height: 24px; flex: none;
+    display: grid; place-items: center; background: #2c3b57;
+    border-radius: 6px; font-size: 12.5px; font-weight: 800; }
+  #qOptions button:hover:not(:disabled) { background: #22304a;
+    border-color: #4a5d80; transform: translateX(3px); }
+  #qOptions button:disabled { cursor: default; }
+  #qOptions button.ok { background: rgba(46,204,113,.2); border-color: #2ecc71;
+    color: #b8ffd5; }
+  #qOptions button.bad { background: rgba(231,76,60,.2); border-color: #e74c3c;
+    color: #ffc9c2; }
+  .feedback { margin-top: 14px; font-size: 14px; font-weight: 700;
+    min-height: 20px; line-height: 1.45; }
+  .feedback.ok { color: #4ade80; }
+  .feedback.bad { color: #ff7b6b; }
+
+  #endIcon { font-size: 62px; margin-bottom: 4px;
+    filter: drop-shadow(0 6px 22px rgba(125,211,252,.55)); }
+  #endTitle { font-size: 27px; margin: 0 0 12px; }
+  #endText { color: #a7b4c8; font-size: 15px; line-height: 1.7; margin: 0 0 20px; }
+  #endText b { color: #ffd93d; font-size: 22px; }
+  #endText .small { font-size: 13px; color: #7d8ba0; }
+  #endName { color: #7dd3fc; font-weight: 900; }
+
+  .btn { font-family: inherit; font-size: 15px; font-weight: 900;
+    padding: 12px 22px; border-radius: 11px; border: none;
+    cursor: pointer; transition: .15s; letter-spacing: .3px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn.primary { background: linear-gradient(180deg, #ffd93d, #f5a623);
+    color: #21160a; box-shadow: 0 6px 0 #b87c10, 0 10px 26px rgba(245,166,35,.35); }
+  .btn.primary:hover { transform: translateY(-2px);
+    box-shadow: 0 8px 0 #b87c10, 0 14px 30px rgba(245,166,35,.45); }
+  .btn.primary:active { transform: translateY(3px); box-shadow: 0 3px 0 #b87c10; }
+  .btn.secondary { background: #1e2b40; color: #e9eef7;
+    border: 1.5px solid #2f3d55; box-shadow: 0 4px 0 #0c1420; }
+  .btn.secondary:hover { background: #283a56; transform: translateY(-2px);
+    box-shadow: 0 6px 0 #0c1420; }
+  .btn.secondary:active { transform: translateY(2px); box-shadow: 0 2px 0 #0c1420; }
+  .btnRowSplit { display: flex; gap: 10px; }
+  .btnRowSplit .btn { flex: 1; }
+
+  .nameInput { width: 100%; font-family: inherit; font-size: 17px;
+    font-weight: 700; padding: 14px 16px; border-radius: 11px;
+    background: #060b14; color: #fff; border: 2px solid #2c3b57;
+    outline: none; transition: .15s; text-align: center; margin-bottom: 14px; }
+  .nameInput:focus { border-color: #ffd93d;
+    box-shadow: 0 0 0 3px rgba(255,217,61,.15); }
+  .nameInput::placeholder { color: #5a6a82; font-weight: 600; }
+  .label { display: block; text-align: left; font-size: 12.5px; font-weight: 800;
+    color: #8fa0ba; text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 7px; }
+
+  .infoBox { background: rgba(125,211,252,.055);
+    border: 1px solid rgba(125,211,252,.18);
+    border-radius: 11px; padding: 12px 14px; margin-bottom: 14px;
+    font-size: 13.5px; color: #b9c5d6; text-align: left; line-height: 1.6; }
+  .infoBox b { color: #ffd93d; }
+
+  #shotOverlay { position: absolute; inset: 0;
+    background: rgba(2,5,12,.92); backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px); border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; z-index: 50; animation: fadeIn .2s; }
+  #shotCard { background: #0f1626; border: 1px solid #223047;
+    border-radius: 18px; padding: 20px; max-width: 640px; width: 100%;
+    box-shadow: 0 24px 70px rgba(0,0,0,.85); text-align: center; }
+  #shotCard h3 { margin: 0 0 14px; font-size: 17px; font-weight: 800;
+    color: #7dd3fc; letter-spacing: .3px; }
+  #shotCanvas { width: 100%; max-width: 560px; height: auto;
+    border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.6);
+    background: #000; display: block; margin: 0 auto 16px; }
+  #shotBtns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  #shotBtns .btn { font-size: 14px; padding: 11px 20px; }
+
+  @media (max-width: 640px) {
+    .card { padding: 18px 16px 16px; }
+    .card h1 { font-size: 24px; }
+    .card h2 { font-size: 16.5px; }
+    #qOptions button { font-size: 14px; padding: 11px 12px; }
+    #hud { font-size: 12px; padding: 9px 12px; }
+    #hud .stat { padding: 4px 8px; }
+    .dot { width: 10px; height: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================================================= -->
+<!--                    ADMIN VIEW                          -->
+<!-- ======================================================= -->
+<div id="adminView">
+  <div class="admin-header">
+    <div class="brand">
+      <span class="logo">🚀</span>
+      <div>
+        <div>Carrera Espacial</div>
+        <small>Panel de administrador</small>
+      </div>
+    </div>
+    <div class="badge">● Vista previa activa</div>
+  </div>
+
+  <div class="admin-body">
+    <div class="admin-preview">
+      <div class="previewLabel"><span class="liveDot"></span> Vista previa · jugable</div>
+      <iframe id="previewFrame" src="about:blank"></iframe>
+      <p style="font-size:12px; color:#7d8ba0; max-width:600px; text-align:center; line-height:1.5; margin:0;">
+        Así verán el juego los participantes. Puedes probarlo aquí mismo antes de compartir el link.
+      </p>
+    </div>
+
+    <div class="admin-panel">
+      <div class="panelSection">
+        <h2>Tiempo máximo</h2>
+        <label class="label" for="maxTimeInput">Duración de la carrera (segundos)</label>
+        <div class="field">
+          <input type="number" id="maxTimeInput" min="0" max="600" step="5" value="60">
+          <span class="unit">seg</span>
+        </div>
+        <div class="chipRow">
+          <button class="chip" data-time="0">Sin límite</button>
+          <button class="chip" data-time="30">30s</button>
+          <button class="chip active" data-time="60">60s</button>
+          <button class="chip" data-time="120">2 min</button>
+          <button class="chip" data-time="180">3 min</button>
+        </div>
+        <p class="help">Si se acaba el tiempo, la carrera termina automáticamente. <code>0</code> = sin límite.</p>
+      </div>
+
+      <div class="panelSection">
+        <h2>Preguntas</h2>
+        <div class="statRow"><span>Preguntas cargadas</span><b id="qCountAdmin">5</b></div>
+        <div class="statRow"><span>Máximo permitido</span><b>10</b></div>
+        <div class="row2">
+          <button id="loadCsvBtn" class="btn2 secondary">📁 Cargar Excel</button>
+          <button id="downloadTplBtn" class="btn2 secondary">📊 Plantilla<span class="excelIcon">XLSX</span></button>
+        </div>
+        <div class="row1">
+          <button id="resetQBtn" class="btn2 ghost">↺ Restaurar por defecto</button>
+        </div>
+        <p class="help" style="margin-top:10px;">
+          Acepta archivos <b style="color:#4ade80">.xlsx</b>, <b style="color:#4ade80">.xls</b> y <b style="color:#7dd3fc">.csv</b>.
+        </p>
+        <div id="csvFeedback" class="feedback2"></div>
+      </div>
+
+      <div class="panelSection">
+        <h2>Link para participantes</h2>
+        <p class="help" style="margin-top:0;">Comparte este link. Los jugadores solo verán el juego y podrán escribir su nombre. La configuración actual va incluida en el link.</p>
+        <textarea id="linkOut" readonly placeholder="El link aparecerá aquí..."></textarea>
+        <button id="copyLinkBtn" class="btn2 primary" disabled>📋 Generar y copiar link</button>
+        <div class="row1">
+          <button id="openLinkBtn" class="btn2 secondary" disabled>🔗 Abrir en nueva pestaña</button>
+        </div>
+        <div id="linkFeedback" class="feedback2"></div>
+      </div>
+
+      <div class="panelSection">
+        <h2>Cómo usar</h2>
+        <p class="help" style="margin-top:0;">
+          1. Descarga la <b style="color:#4ade80">plantilla Excel</b> y edítala.<br>
+          2. Carga el archivo con <b>Cargar Excel</b>.<br>
+          3. Ajusta el tiempo máximo.<br>
+          4. Pulsa <b style="color:#ffd93d">Generar link</b> y cópialo.<br>
+          5. Envíalo a los participantes.
+        </p>
+      </div>
+
+      <input type="file" id="csvInput" accept=".xlsx,.xls,.csv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" hidden>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<!--                     USER VIEW                          -->
+<!-- ======================================================= -->
+<div id="userView" class="hidden">
+  <canvas id="game" width="800" height="600"></canvas>
+
+  <div id="hud" class="hidden">
+    <div id="dots"></div>
+    <div class="stat">👤 <span id="playerNameHud">—</span></div>
+    <div class="stat" id="timeStat">⏱ <span id="timeVal">0.0</span>s</div>
+    <div class="stat">⭐ <span id="ptsVal">0</span> · 💥 <span id="crashVal">0</span> · ☄️ <span id="hitVal">0</span></div>
+  </div>
+
+  <div id="startOverlay" class="overlay">
+    <div class="card center">
+      <div style="font-size:52px; line-height:1; margin-bottom:6px;">🚀</div>
+      <h1>Carrera Espacial</h1>
+      <p class="sub">Adelanta naves rivales respondiendo preguntas. Cada décima de segundo vale <b>1 punto</b>.</p>
+
+      <label class="label" for="playerNameInput">Tu nombre de piloto</label>
+      <input type="text" id="playerNameInput" class="nameInput" placeholder="Escribe tu nombre" maxlength="20" autocomplete="off">
+
+      <div class="infoBox" id="infoBoxStart">
+        <b>Puntaje:</b> (tiempo × 10) − (choques × 5) − asteroides<br>
+        Ej: terminar en <b>53.5s</b> sin choques = <b>535 pts</b>
+      </div>
+
+      <button id="startBtn" class="btn primary" style="width:100%; font-size:17px;">▶ &nbsp;Despegar</button>
+    </div>
+  </div>
+
+  <div id="qOverlay" class="overlay hidden">
+    <div class="card">
+      <div class="tag">👾 ¡Nave rival detectada!</div>
+      <h2 id="qText"></h2>
+      <div id="qOptions"></div>
+      <div id="qFeedback" class="feedback"></div>
+    </div>
+  </div>
+
+  <div id="endOverlay" class="overlay hidden">
+    <div class="card center">
+      <div id="endIcon">🏆</div>
+      <h2 id="endTitle"></h2>
+      <p id="endText"></p>
+      <div class="btnRowSplit" style="margin-bottom:10px;">
+        <button id="shotBtn" class="btn primary">📸 Capturar puntaje</button>
+        <button id="endBtn" class="btn secondary">🔄 Reintentar</button>
+      </div>
+      <div class="btnRowSplit">
+        <button id="shareLinkBtn" class="btn secondary" style="font-size:13.5px;">🔗 Compartir desafío</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="shotOverlay" class="hidden">
+    <div id="shotCard">
+      <h3>📸 Tu resultado</h3>
+      <canvas id="shotCanvas" width="560" height="360"></canvas>
+      <div id="shotBtns">
+        <button id="downloadShotBtn" class="btn primary">⬇ Descargar PNG</button>
+        <button id="shareShotBtn" class="btn secondary" style="display:none;">📤 Compartir</button>
+        <button id="closeShotBtn" class="btn secondary">✕ Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="hint" class="fade">← → o A / D para moverte · también puedes arrastrar el dedo o el mouse</div>
+</div>
+
+<script>
+/* =========================================================
+   DETECCIÓN DE MODO
+   ========================================================= */
+var urlParams = new URLSearchParams(location.search);
+var MODE = urlParams.get('mode') === 'user' ? 'user' : 'admin';
+
+document.body.className = MODE === 'user' ? 'mode-user' : 'mode-admin';
+document.getElementById('adminView').classList.toggle('hidden', MODE !== 'admin');
+document.getElementById('userView').classList.toggle('hidden', MODE !== 'user');
+
+/* =========================================================
+   CONFIG POR DEFECTO
+   ========================================================= */
+var DEFAULT_QUESTIONS = [
+  { q: '¿Cuál es el animal más grande que existe en el planeta?',
+    options: ['El elefante africano', 'La ballena azul', 'El tiburón blanco', 'La jirafa'],
+    correct: 1, explain: 'La ballena azul puede medir hasta 30 metros y pesar 180 toneladas.' },
+  { q: '¿Cuántas patas tiene una araña?',
+    options: ['6 patas', '8 patas', '10 patas', '12 patas'],
+    correct: 1, explain: 'Las arañas son arácnidos, y todos los arácnidos tienen 8 patas.' },
+  { q: '¿Qué animal es conocido como el "rey de la selva"?',
+    options: ['El tigre', 'El gorila', 'El león', 'El oso pardo'],
+    correct: 2, explain: 'El león es conocido popularmente como el rey de la selva.' },
+  { q: '¿Qué animal puede cambiar de color para camuflarse?',
+    options: ['El camaleón', 'El pingüino', 'El delfín', 'La tortuga'],
+    correct: 0, explain: 'El camaleón cambia de color según su entorno y su estado de ánimo.' },
+  { q: '¿Cuál de estos animales es un mamífero que pone huevos?',
+    options: ['El murciélago', 'El ornitorrinco', 'El koala', 'El pingüino'],
+    correct: 1, explain: 'El ornitorrinco es un mamífero monotrema: pone huevos y produce leche.' }
+];
+
+var DEFAULT_CONFIG = { maxTime: 60, questions: DEFAULT_QUESTIONS };
+
+/* =========================================================
+   CODIFICACIÓN DE CONFIG EN URL
+   ========================================================= */
+function encodeConfig(cfg) {
+  var json = JSON.stringify(cfg);
+  var bytes = new TextEncoder().encode(json);
+  var bin = '';
+  for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+function decodeConfig(str) {
+  try {
+    str = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (str.length % 4) str += '=';
+    var bin = atob(str);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch (e) { return null; }
+}
+
+/* =========================================================
+   FUNCIÓN DE COPIADO ROBUSTA
+   ========================================================= */
+async function copyToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
+  }
+  try {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.top = '-9999px'; ta.style.left = '-9999px';
+    ta.setAttribute('readonly', '');
+    document.body.appendChild(ta);
+    ta.select(); ta.setSelectionRange(0, text.length);
+    var ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) { return false; }
+}
+
+/* Cargar config */
+var CONFIG;
+if (MODE === 'user') {
+  var raw = urlParams.get('cfg');
+  var fromUrl = raw ? decodeConfig(raw) : null;
+  CONFIG = fromUrl || DEFAULT_CONFIG;
+} else {
+  var saved = localStorage.getItem('carreraConfig');
+  if (saved) { try { CONFIG = JSON.parse(saved); } catch (e) { CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG)); } }
+  else CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+}
+
+/* =========================================================
+   ADMIN PANEL
+   ========================================================= */
+if (MODE === 'admin') {
+  var maxInput  = document.getElementById('maxTimeInput');
+  var qCountEl  = document.getElementById('qCountAdmin');
+  var csvFb     = document.getElementById('csvFeedback');
+  var linkOut   = document.getElementById('linkOut');
+  var linkFb    = document.getElementById('linkFeedback');
+  var copyBtn   = document.getElementById('copyLinkBtn');
+  var openBtn   = document.getElementById('openLinkBtn');
+  var csvInput  = document.getElementById('csvInput');
+  var frame     = document.getElementById('previewFrame');
+
+  maxInput.value = CONFIG.maxTime;
+  qCountEl.textContent = CONFIG.questions.length;
+
+  function buildUserLink() {
+    var base = location.href.split('?')[0].split('#')[0];
+    var cfgEnc = encodeConfig(CONFIG);
+    return base + '?mode=user&cfg=' + cfgEnc;
+  }
+
+  function regenerateLink() {
+    var url = buildUserLink();
+    linkOut.value = url;
+    copyBtn.disabled = false;
+    openBtn.disabled = false;
+
+    if (location.protocol === 'file:') {
+      linkFb.innerHTML = '⚠️ Estás abriendo el archivo localmente. Este link funcionará en tu PC, pero <b>para compartirlo debes subir el HTML a un hosting</b> (Netlify Drop, GitHub Pages, Vercel).';
+      linkFb.className = 'feedback2 bad';
+    } else {
+      linkFb.textContent = '✅ Link listo. Pulsa "Generar y copiar" o selecciónalo manualmente.';
+      linkFb.className = 'feedback2 ok';
+    }
+  }
+
+  document.querySelectorAll('.chip').forEach(function(ch) {
+    ch.classList.toggle('active', parseInt(ch.dataset.time, 10) === CONFIG.maxTime);
+    ch.addEventListener('click', function() {
+      var t = parseInt(ch.dataset.time, 10);
+      maxInput.value = t;
+      CONFIG.maxTime = t;
+      document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
+      ch.classList.add('active');
+      persistAndRefresh();
+    });
+  });
+
+  maxInput.addEventListener('input', function() {
+    var v = parseInt(maxInput.value, 10);
+    if (isNaN(v) || v < 0) v = 0;
+    if (v > 600) v = 600;
+    CONFIG.maxTime = v;
+    document.querySelectorAll('.chip').forEach(function(c) {
+      c.classList.toggle('active', parseInt(c.dataset.time, 10) === v);
+    });
+    persistAndRefresh();
+  });
+
+  function persistAndRefresh() {
+    localStorage.setItem('carreraConfig', JSON.stringify(CONFIG));
+    qCountEl.textContent = CONFIG.questions.length;
+    regenerateLink();
+    updatePreview();
+  }
+
+  function updatePreview() {
+    var base = location.href.split('?')[0].split('#')[0];
+    var cfgEnc = encodeConfig(CONFIG);
+    frame.src = base + '?mode=user&cfg=' + cfgEnc + '&preview=1';
+  }
+
+  document.getElementById('loadCsvBtn').addEventListener('click', function() { csvInput.click(); });
+
+  csvInput.addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var name = file.name.toLowerCase();
+    if (name.endsWith('.xlsx') || name.endsWith('.xls')) readExcelFile(file);
+    else readCSVFile(file);
+    csvInput.value = '';
+  });
+
+  function readCSVFile(file) {
+    var reader = new FileReader();
+    reader.onload = function(ev) { applyParsed(parseCSV(ev.target.result)); };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function readExcelFile(file) {
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var data = new Uint8Array(ev.target.result);
+        var wb = XLSX.read(data, { type: 'array' });
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        applyParsed(parseRows(rows));
+      } catch (err) {
+        csvFb.textContent = '❌ Error al leer el Excel: ' + err.message;
+        csvFb.className = 'feedback2 bad';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function applyParsed(parsed) {
+    if (parsed.error) {
+      csvFb.textContent = '❌ ' + parsed.error;
+      csvFb.className = 'feedback2 bad';
+      return;
+    }
+    CONFIG.questions = parsed.questions;
+    csvFb.textContent = '✅ ' + parsed.questions.length + ' pregunta(s) cargada(s)';
+    csvFb.className = 'feedback2 ok';
+    persistAndRefresh();
+  }
+
+  document.getElementById('downloadTplBtn').addEventListener('click', downloadExcelTemplate);
+  document.getElementById('resetQBtn').addEventListener('click', function() {
+    CONFIG.questions = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+    csvFb.textContent = '↺ Preguntas restauradas a las 5 por defecto';
+    csvFb.className = 'feedback2 ok';
+    persistAndRefresh();
+  });
+
+  copyBtn.addEventListener('click', async function() {
+    var url = linkOut.value || buildUserLink();
+    var ok = await copyToClipboard(url);
+    if (ok) {
+      linkFb.textContent = '✅ Link copiado al portapapeles';
+      linkFb.className = 'feedback2 ok';
+      copyBtn.textContent = '✅ ¡Copiado!';
+      setTimeout(function() { copyBtn.textContent = '📋 Generar y copiar link'; }, 1800);
+    } else {
+      linkFb.textContent = '⚠️ Tu navegador bloqueó el copiado. El link ya está seleccionado, pulsa Ctrl+C (⌘+C).';
+      linkFb.className = 'feedback2 bad';
+      linkOut.focus();
+      linkOut.select();
+    }
+  });
+
+  openBtn.addEventListener('click', function() {
+    if (linkOut.value) window.open(linkOut.value, '_blank');
+  });
+
+  regenerateLink();
+  updatePreview();
+}
+
+/* =========================================================
+   USER GAME
+   ========================================================= */
+if (MODE === 'user') {
+  var canvas = document.getElementById('game');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  var HORIZON = H / 2;
+
+  var SEG_LEN        = 200;
+  var ROAD_HW        = 1300;
+  var RUMBLE_W       = 380;
+  var CAM_HEIGHT     = 1200;
+  var CAM_DEPTH      = 0.84;
+  var DRAW_SEGMENTS  = 260;
+  var PLAYER_Z       = 1100;
+  var RIVAL_TRIGGER_Z= 2300;
+  var ROAD_SPEED     = 7000;
+  var CAR_W_WORLD    = 640;
+  var CAR_H_WORLD    = 440;
+
+  function clamp(v, a, b){ return v < a ? a : v > b ? b : v; }
+  function lerp(a, b, t){ return a + (b - a) * t; }
+  function easeInOut(t){ return t < 0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+  function proj(z){ var scale = CAM_DEPTH/z; return { scale: scale, y: HORIZON + scale*CAM_HEIGHT*(H/2) }; }
+  function screenX(wx, s){ return W/2 + s*wx*(W/2); }
+  function halfRoad(s){ return s*ROAD_HW*(W/2); }
+  function halfRumble(s){ return s*(ROAD_HW+RUMBLE_W)*(W/2); }
+  function roundRect(x, y, w, h, r){
+    r = Math.min(r, Math.abs(w)/2, Math.abs(h)/2);
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
+  }
+  function shade(hex, amt){
+    var n = parseInt(hex.slice(1), 16);
+    var r = clamp((n>>16)+amt, 0, 255);
+    var g = clamp(((n>>8)&255)+amt, 0, 255);
+    var b = clamp((n&255)+amt, 0, 255);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+  function shuffle(a){
+    for (var i = a.length-1; i > 0; i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+
+  var state = 'start';
+  var player, rival, particles;
+  var elapsed, crashes, asteroidHits, qIndex, questions;
+  var roadScroll, spawnTimer, shake, crashTimer, finishZ, passAnim;
+  var pointerActive = false, pointerX = 0;
+  var playerName = '';
+  var gameTime = 0;
+  var roadAsteroids = [];
+  var nextAstSpawn = 0;
+  var keys = { left: false, right: false };
+  var RIVAL_COLORS = ['#3ba3ff','#9b5de5','#f15bb5','#00bbf9','#06d6a0','#ffd166','#ff6ec7'];
+
+  var STARS = [];
+  (function(){
+    var seed = 42;
+    var rand = function(){ seed = (seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
+    for (var i = 0; i < 190; i++){
+      STARS.push({
+        x: rand()*W, y: rand()*HORIZON,
+        r: 0.4 + rand()*1.6, tw: rand()*Math.PI*2, base: 0.4 + rand()*0.6
+      });
+    }
+  })();
+
+  function reset(){
+    state = 'drive';
+    player = { x: 0 };
+    rival = null;
+    particles = [];
+    roadAsteroids = [];
+    nextAstSpawn = 1.5;
+    elapsed = 0;
+    crashes = 0;
+    asteroidHits = 0;
+    qIndex = 0;
+    questions = shuffle((CONFIG.questions || DEFAULT_QUESTIONS).slice());
+    roadScroll = 0; spawnTimer = 0; shake = 0; crashTimer = 0;
+    finishZ = 0; passAnim = null; pointerActive = false;
+
+    spawnRival(16000);
+
+    document.getElementById('startOverlay').classList.add('hidden');
+    document.getElementById('qOverlay').classList.add('hidden');
+    document.getElementById('endOverlay').classList.add('hidden');
+    document.getElementById('shotOverlay').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
+    document.getElementById('playerNameHud').textContent = playerName || '—';
+    document.getElementById('hint').classList.remove('fade');
+    updateHUD();
+    setTimeout(function(){ document.getElementById('hint').classList.add('fade'); }, 6000);
+  }
+
+  function spawnRival(z){
+    rival = {
+      x: (Math.random()*2-1)*900,
+      z: z,
+      color: RIVAL_COLORS[Math.floor(Math.random()*RIVAL_COLORS.length)],
+      phase: Math.random()*Math.PI*2
+    };
+  }
+
+  function spawnRoadAsteroid(){
+    var x = (Math.random() * 2 - 1) * (ROAD_HW * 0.78);
+    var z = 14000 + Math.random() * 8000;
+    var rot = Math.random() * Math.PI * 2;
+    var rotSpeed = (Math.random() - 0.5) * 1.6;
+    var r = 90 + Math.random() * 70;
+    roadAsteroids.push({ x: x, z: z, rot: rot, rotSpeed: rotSpeed, r: r, hit: false });
+  }
+
+  function currentPoints(){
+    return Math.max(0, Math.floor(elapsed*10) - crashes*50 - asteroidHits);
+  }
+
+  function updateHUD(){
+    var total = questions ? questions.length : (CONFIG.questions||[]).length || 5;
+    if (CONFIG.maxTime > 0) {
+      var rem = Math.max(0, CONFIG.maxTime - elapsed);
+      document.getElementById('timeVal').textContent = rem.toFixed(1);
+      document.getElementById('timeStat').classList.toggle('warn', rem <= 5);
+      document.getElementById('timeStat').firstChild.textContent = '⏳ ';
+    } else {
+      document.getElementById('timeVal').textContent = elapsed.toFixed(1);
+      document.getElementById('timeStat').classList.remove('warn');
+      document.getElementById('timeStat').firstChild.textContent = '⏱ ';
+    }
+    document.getElementById('crashVal').textContent = crashes;
+    document.getElementById('ptsVal').textContent = currentPoints();
+    var hitEl = document.getElementById('hitVal');
+    if (hitEl) hitEl.textContent = asteroidHits;
+    document.getElementById('playerNameHud').textContent = playerName || '—';
+
+    var dots = document.getElementById('dots');
+    dots.innerHTML = '';
+    for (var i = 0; i < total; i++){
+      var d = document.createElement('div');
+      d.className = 'dot';
+      if (i < qIndex) d.classList.add('ok');
+      if (i === qIndex && state !== 'win' && state !== 'finish' && state !== 'start') d.classList.add('now');
+      dots.appendChild(d);
+    }
+  }
+
+  function askQuestion(){
+    state = 'question';
+    var q = questions[qIndex];
+    document.getElementById('qText').textContent = q.q;
+    var box = document.getElementById('qOptions');
+    var fb = document.getElementById('qFeedback');
+    fb.textContent = ''; fb.className = 'feedback'; box.innerHTML = '';
+    var letters = ['A','B','C','D'];
+    q.options.forEach(function(opt, i){
+      var btn = document.createElement('button');
+      btn.innerHTML = '<span class="key">' + letters[i] + '</span><span>' + opt + '</span>';
+      btn.addEventListener('click', function(){ answer(i, btn); });
+      box.appendChild(btn);
+    });
+    document.getElementById('qOverlay').classList.remove('hidden');
+    updateHUD();
+  }
+
+  function answer(idx, btn){
+    var q = questions[qIndex];
+    var buttons = document.querySelectorAll('#qOptions button');
+    buttons.forEach(function(b){ b.disabled = true; });
+    var fb = document.getElementById('qFeedback');
+
+    if (idx === q.correct){
+      btn.classList.add('ok');
+      fb.textContent = '¡Correcto! 🎉 ' + q.explain;
+      fb.className = 'feedback ok';
+      setTimeout(function(){
+        document.getElementById('qOverlay').classList.add('hidden');
+        qIndex++;
+        startPass();
+        updateHUD();
+      }, 950);
+    } else {
+      btn.classList.add('bad');
+      fb.textContent = '¡Incorrecto! 💥 ' + q.explain;
+      fb.className = 'feedback bad';
+      setTimeout(function(){
+        document.getElementById('qOverlay').classList.add('hidden');
+        startCrash();
+      }, 1750);
+    }
+  }
+
+  function startPass(){
+    var side = (rival.x >= 0) ? -1 : 1;
+    var targetX = side * ROAD_HW * 0.72;
+    passAnim = { t:0, duration:1.15, px0: player.x, px1: targetX,
+                 rx0: rival.x, rx1: rival.x, rz0: rival.z, rz1: 420 };
+    state = 'pass';
+  }
+
+  function startCrash(){
+    state = 'crash'; crashes++; shake = 1; crashTimer = 1.7;
+    var p = proj(PLAYER_Z);
+    spawnExplosion(screenX(player.x, p.scale), p.y - 40, 85, true);
+    rival = null;
+    updateHUD();
+  }
+
+  function hitRoadAsteroid(ast){
+    ast.hit = true;
+    asteroidHits++;
+    shake = Math.max(shake, 0.55);
+    var p = proj(ast.z);
+    spawnExplosion(screenX(ast.x, p.scale), p.y, 35, false);
+    updateHUD();
+  }
+
+  function spawnExplosion(x, y, count, isCrash){
+    count = count || 85;
+    isCrash = (isCrash !== false);
+    var colors = isCrash
+      ? ['#fff3b0','#ffcc00','#ff7b00','#ff3300','#7dd3fc','#ffffff']
+      : ['#c084fc','#ffd166','#ff8c42','#b0b0c8','#ffffff'];
+    for (var i = 0; i < count; i++){
+      var a = Math.random()*Math.PI*2;
+      var sp = 70 + Math.random()*(isCrash?430:260);
+      particles.push({
+        x: x, y: y,
+        vx: Math.cos(a)*sp, vy: Math.sin(a)*sp - 120,
+        r: 2 + Math.random()*8, life: 1,
+        color: colors[Math.floor(Math.random()*colors.length)]
+      });
+    }
+  }
+
+  function startFinish(){
+    if (state === 'finish' || state === 'win') return;
+    state = 'finish';
+    finishZ = 24000;
+    updateHUD();
+  }
+
+  function showWin(){
+    state = 'win';
+    var pts = currentPoints();
+    document.getElementById('endIcon').textContent = '🏆';
+    document.getElementById('endTitle').textContent = '¡Llegaste a la meta!';
+    var nameHtml = playerName ? '¡Buen trabajo, <span id="endName">' + escapeHtml(playerName) + '</span>!<br><br>' : '';
+    document.getElementById('endText').innerHTML =
+      nameHtml +
+      '<b>' + pts + ' puntos</b><br><br>' +
+      'Tiempo: <b style="font-size:16px;color:#e9eef7">' + elapsed.toFixed(1) + 's</b><br>' +
+      'Choques: <b style="font-size:16px;color:#e9eef7">' + crashes + '</b> (−' + (crashes*5) + ' pts)<br>' +
+      'Asteroides: <b style="font-size:16px;color:#e9eef7">' + asteroidHits + '</b> (−' + asteroidHits + ' pts)<br>' +
+      '<span class="small">Puntaje = (tiempo × 10) − (choques × 5) − asteroides</span>';
+    document.getElementById('endOverlay').classList.remove('hidden');
+    updateHUD();
+  }
+
+  function handleInput(dt){
+    var minX = -ROAD_HW + CAR_W_WORLD*0.55;
+    var maxX =  ROAD_HW - CAR_W_WORLD*0.55;
+    if (pointerActive){
+      var s = proj(PLAYER_Z).scale;
+      var target = (pointerX - W/2) / (s * (W/2));
+      player.x += (clamp(target, minX, maxX) - player.x) * Math.min(1, 9*dt);
+    } else {
+      var dir = 0;
+      if (keys.left) dir -= 1;
+      if (keys.right) dir += 1;
+      player.x += dir * 1750 * dt;
+    }
+    player.x = clamp(player.x, minX, maxX);
+  }
+
+  function updateParticles(dt){
+    for (var i = particles.length-1; i >= 0; i--){
+      var p = particles[i];
+      p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 210*dt;
+      p.vx *= 0.985; p.vy *= 0.985; p.life -= dt*1.1;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function update(dt){
+    gameTime += dt;
+    updateParticles(dt);
+    if (shake > 0) shake = Math.max(0, shake - dt*1.8);
+
+    if (state === 'start'){
+      roadScroll = (roadScroll + ROAD_SPEED*0.35*dt) % 6000;
+      return;
+    }
+    if (state === 'win') return;
+
+    if (state !== 'question'){
+      elapsed += dt;
+      roadScroll = (roadScroll + ROAD_SPEED*dt) % 6000;
+      updateHUD();
+      if (CONFIG.maxTime > 0 && elapsed >= CONFIG.maxTime
+          && (state === 'drive' || state === 'pass')){
+        startFinish();
+      }
+    } else {
+      roadScroll = (roadScroll + ROAD_SPEED*0.25*dt) % 6000;
+    }
+
+    if (state === 'drive' || state === 'pass' || state === 'crash'){
+      nextAstSpawn -= dt;
+      if (nextAstSpawn <= 0){
+        var n = 1 + Math.floor(Math.random() * 3);
+        for (var k = 0; k < n; k++) spawnRoadAsteroid();
+        nextAstSpawn = 1.4 + Math.random() * 1.6;
+      }
+    }
+
+    for (var i = roadAsteroids.length - 1; i >= 0; i--){
+      var a = roadAsteroids[i];
+      if (a.hit){ roadAsteroids.splice(i, 1); continue; }
+      a.z -= ROAD_SPEED * dt;
+      a.rot += a.rotSpeed * dt;
+
+      if (state === 'drive' || state === 'pass'){
+        var dz = Math.abs(a.z - PLAYER_Z);
+        var dx = Math.abs(a.x - player.x);
+        var hitRadius = CAR_W_WORLD * 0.55 + a.r * 0.4;
+        if (dz < 380 && dx < hitRadius){
+          hitRoadAsteroid(a);
+        }
+      }
+      if (a.z < 200) roadAsteroids.splice(i, 1);
+    }
+
+    if (state === 'drive'){
+      handleInput(dt);
+      if (rival){
+        rival.z -= 4200*dt;
+        rival.phase += dt*2.4;
+        rival.x += (player.x - rival.x) * Math.min(1, 0.65*dt);
+        rival.x += Math.sin(rival.phase) * 22 * dt;
+        if (rival.z <= RIVAL_TRIGGER_Z){ rival.z = RIVAL_TRIGGER_Z; askQuestion(); }
+      } else {
+        spawnTimer -= dt;
+        if (spawnTimer <= 0){
+          if (qIndex >= questions.length) startFinish();
+          else spawnRival(16000);
+        }
+      }
+    } else if (state === 'pass'){
+      passAnim.t += dt;
+      var kk = clamp(passAnim.t / passAnim.duration, 0, 1);
+      var e = easeInOut(kk);
+      player.x = lerp(passAnim.px0, passAnim.px1, e);
+      rival.z = lerp(passAnim.rz0, passAnim.rz1, e);
+      rival.x = lerp(passAnim.rx0, passAnim.rx1, e);
+      if (kk >= 1){ rival = null; spawnTimer = 1.1; state = 'drive'; }
+    } else if (state === 'crash'){
+      crashTimer -= dt;
+      if (crashTimer <= 0){ spawnRival(13000); state = 'drive'; }
+    } else if (state === 'finish'){
+      handleInput(dt);
+      finishZ -= ROAD_SPEED*dt;
+      if (finishZ <= PLAYER_Z) showWin();
+    }
+  }
+
+  /* ===================== DIBUJO ===================== */
+  var PLANETS = [
+    { x: 0.15*W, y: HORIZON-30, r: 90, c1:'#5a3a8e', c2:'#2a1a4a', ring:true },
+    { x: 0.85*W, y: HORIZON-20, r: 55, c1:'#3a5a8e', c2:'#1a2a4a', ring:false }
+  ];
+
+  function drawSpace(){
+    var g = ctx.createLinearGradient(0, 0, 0, HORIZON);
+    g.addColorStop(0, '#05040f');
+    g.addColorStop(0.45, '#0a0a22');
+    g.addColorStop(1, '#1a0a3a');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, HORIZON+1);
+
+    var neb = ctx.createRadialGradient(W*0.72, HORIZON*0.55, 20, W*0.72, HORIZON*0.55, 320);
+    neb.addColorStop(0, 'rgba(180,80,220,.18)');
+    neb.addColorStop(0.5, 'rgba(80,40,150,.08)');
+    neb.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = neb;
+    ctx.fillRect(0, 0, W, HORIZON);
+
+    var neb2 = ctx.createRadialGradient(W*0.25, HORIZON*0.7, 10, W*0.25, HORIZON*0.7, 260);
+    neb2.addColorStop(0, 'rgba(60,180,240,.14)');
+    neb2.addColorStop(0.6, 'rgba(20,80,150,.05)');
+    neb2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = neb2;
+    ctx.fillRect(0, 0, W, HORIZON);
+
+    for (var i = 0; i < STARS.length; i++){
+      var s = STARS[i];
+      var a = s.base * (0.75 + 0.25*Math.sin(gameTime*2 + s.tw));
+      ctx.globalAlpha = a;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    for (var j = 0; j < PLANETS.length; j++){
+      var p = PLANETS[j];
+      if (p.ring){
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(-0.35);
+        ctx.strokeStyle = 'rgba(200,170,240,.45)';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.r*1.55, p.r*0.32, 0, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(140,110,200,.3)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.r*1.75, p.r*0.38, 0, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.restore();
+      }
+      var pg = ctx.createRadialGradient(p.x - p.r*0.35, p.y - p.r*0.35, p.r*0.1, p.x, p.y, p.r);
+      pg.addColorStop(0, p.c1);
+      pg.addColorStop(1, p.c2);
+      ctx.fillStyle = pg;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fill();
+      var sg = ctx.createRadialGradient(p.x - p.r*0.3, p.y - p.r*0.3, p.r*0.15, p.x, p.y, p.r);
+      sg.addColorStop(0, 'rgba(0,0,0,0)');
+      sg.addColorStop(0.75, 'rgba(0,0,0,0)');
+      sg.addColorStop(1, 'rgba(0,0,0,.65)');
+      ctx.fillStyle = sg;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    var sg2 = ctx.createLinearGradient(0, HORIZON, 0, H);
+    sg2.addColorStop(0, '#120a24');
+    sg2.addColorStop(1, '#1a0f2a');
+    ctx.fillStyle = sg2;
+    ctx.fillRect(0, HORIZON, W, H - HORIZON);
+
+    ctx.strokeStyle = 'rgba(125,211,252,.08)';
+    ctx.lineWidth = 1;
+    var gridOff = (roadScroll * 0.3) % 60;
+    for (var y = HORIZON; y < H + 60; y += 60){
+      ctx.beginPath();
+      ctx.moveTo(0, y + gridOff);
+      ctx.lineTo(W, y + gridOff);
+      ctx.stroke();
+    }
+    for (var x = 0; x < W; x += 80){
+      ctx.beginPath();
+      ctx.moveTo(x, HORIZON);
+      ctx.lineTo(x, H);
+      ctx.stroke();
+    }
+  }
+
+  function drawAsteroid(sx, baseY, scale){
+    if (sx < -120 || sx > W+120) return;
+    var r = 55 * scale * (W/2);
+    if (r < 2) return;
+    ctx.fillStyle = 'rgba(0,0,0,.4)';
+    ctx.beginPath();
+    ctx.ellipse(sx, baseY, r*1.2, r*0.2, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.save();
+    ctx.translate(sx, baseY - r*0.9);
+    var g = ctx.createRadialGradient(-r*0.3, -r*0.3, r*0.15, 0, 0, r);
+    g.addColorStop(0, '#6a6a78');
+    g.addColorStop(0.7, '#3a3a48');
+    g.addColorStop(1, '#1a1a24');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(-r, 0);
+    ctx.lineTo(-r*0.55, -r*0.85);
+    ctx.lineTo( r*0.15, -r);
+    ctx.lineTo( r*0.8, -r*0.55);
+    ctx.lineTo( r, r*0.15);
+    ctx.lineTo( r*0.4, r*0.75);
+    ctx.lineTo(-r*0.5, r*0.7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.4)';
+    ctx.beginPath(); ctx.arc(-r*0.35, -r*0.25, r*0.18, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc( r*0.25,  r*0.15, r*0.14, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-r*0.1, r*0.35, r*0.10, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawRoadAsteroid(a){
+    if (a.z < 700 || a.z > 24000) return;
+    var p = proj(a.z);
+    var sx = screenX(a.x, p.scale);
+    var sy = p.y;
+    var r = a.r * p.scale * (W/2);
+    if (r < 2 || sx < -200 || sx > W + 200) return;
+
+    ctx.fillStyle = 'rgba(0,0,0,.5)';
+    ctx.beginPath();
+    ctx.ellipse(sx, sy + r*0.5, r*1.05, r*0.28, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    var pulse = 0.55 + 0.45 * Math.sin(gameTime*4 + a.rot);
+    var auraG = ctx.createRadialGradient(sx, sy, r*0.6, sx, sy, r*1.9);
+    auraG.addColorStop(0, 'rgba(255,80,60,' + (0.28*pulse) + ')');
+    auraG.addColorStop(1, 'rgba(255,80,60,0)');
+    ctx.fillStyle = auraG;
+    ctx.beginPath();
+    ctx.arc(sx, sy, r*1.9, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(a.rot);
+    var g = ctx.createRadialGradient(-r*0.35, -r*0.35, r*0.15, 0, 0, r);
+    g.addColorStop(0, '#8b8b9a');
+    g.addColorStop(0.55, '#55556a');
+    g.addColorStop(1, '#22222e');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    var pts = [
+      [-1.00, -0.10], [-0.72, -0.78], [-0.05, -1.00], [ 0.62, -0.80],
+      [ 1.00, -0.18], [ 0.85,  0.55], [ 0.25,  0.98], [-0.55,  0.85],
+      [-0.95,  0.30]
+    ];
+    for (var i = 0; i < pts.length; i++){
+      var px = pts[i][0] * r, py = pts[i][1] * r;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255,120,80,' + (0.5 + 0.3*pulse) + ')';
+    ctx.lineWidth = Math.max(1, r*0.06);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.beginPath(); ctx.arc(-r*0.30, -r*0.20, r*0.16, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc( r*0.22,  r*0.28, r*0.12, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-r*0.05,  r*0.42, r*0.09, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc( r*0.42, -r*0.30, r*0.08, 0, Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,255,255,.14)';
+    ctx.beginPath();
+    ctx.ellipse(-r*0.35, -r*0.42, r*0.30, r*0.16, -0.6, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawShip(cx, baseY, w, h, color, isPlayer){
+    if (w < 3 || h < 2) return;
+    var left = cx - w/2;
+    var top = baseY - h;
+
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.beginPath();
+    ctx.ellipse(cx, baseY + h*0.07, w*0.62, h*0.10, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    /* Llamas */
+    var flicker = 0.85 + 0.15 * Math.sin(gameTime*42 + cx*0.01);
+    var flamePositions = [-w*0.26, 0, w*0.26];
+    for (var fi = 0; fi < flamePositions.length; fi++){
+      var dx = flamePositions[fi];
+      var baseFlameH = h * (fi === 1 ? 0.95 : 0.70) * flicker;
+      var baseFlameW = w * (fi === 1 ? 0.24 : 0.20);
+
+      var fgOuter = ctx.createLinearGradient(0, baseY - h*0.02, 0, baseY + baseFlameH);
+      if (isPlayer){
+        fgOuter.addColorStop(0, 'rgba(190,240,255,0.95)');
+        fgOuter.addColorStop(0.35, 'rgba(80,180,255,0.7)');
+        fgOuter.addColorStop(1, 'rgba(30,60,180,0)');
+      } else {
+        fgOuter.addColorStop(0, 'rgba(255,240,200,0.95)');
+        fgOuter.addColorStop(0.35, 'rgba(255,150,60,0.7)');
+        fgOuter.addColorStop(1, 'rgba(160,30,10,0)');
+      }
+      ctx.fillStyle = fgOuter;
+      ctx.beginPath();
+      ctx.moveTo(cx + dx - baseFlameW*0.55, baseY);
+      ctx.quadraticCurveTo(cx + dx, baseY + baseFlameH*0.5, cx + dx, baseY + baseFlameH);
+      ctx.quadraticCurveTo(cx + dx, baseY + baseFlameH*0.5, cx + dx + baseFlameW*0.55, baseY);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = isPlayer ? 'rgba(240,250,255,0.9)' : 'rgba(255,250,220,0.9)';
+      ctx.beginPath();
+      ctx.moveTo(cx + dx - baseFlameW*0.25, baseY);
+      ctx.quadraticCurveTo(cx + dx, baseY + baseFlameH*0.55, cx + dx, baseY + baseFlameH*0.85);
+      ctx.quadraticCurveTo(cx + dx, baseY + baseFlameH*0.55, cx + dx + baseFlameW*0.25, baseY);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    /* Alas */
+    var wingColor = shade(color, -55);
+    var wingEdge = shade(color, -25);
+
+    ctx.fillStyle = wingColor;
+    ctx.beginPath();
+    ctx.moveTo(left + w*0.16, top + h*0.40);
+    ctx.lineTo(left - w*0.08, top + h*0.28);
+    ctx.lineTo(left - w*0.14, top + h*0.58);
+    ctx.lineTo(left + w*0.02, baseY - h*0.05);
+    ctx.lineTo(left + w*0.20, baseY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = wingEdge;
+    ctx.lineWidth = Math.max(1, w*0.010);
+    ctx.stroke();
+
+    ctx.fillStyle = wingColor;
+    ctx.beginPath();
+    ctx.moveTo(left + w*0.84, top + h*0.40);
+    ctx.lineTo(left + w*1.08, top + h*0.28);
+    ctx.lineTo(left + w*1.14, top + h*0.58);
+    ctx.lineTo(left + w*0.98, baseY - h*0.05);
+    ctx.lineTo(left + w*0.80, baseY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = wingEdge;
+    ctx.stroke();
+
+    var wingGlow = isPlayer ? 'rgba(120,220,255,0.95)' : 'rgba(255,200,120,0.9)';
+    ctx.strokeStyle = wingGlow;
+    ctx.lineWidth = Math.max(1.5, w*0.014);
+    ctx.beginPath();
+    ctx.moveTo(left + w*0.04, top + h*0.44);
+    ctx.lineTo(left + w*0.14, baseY - h*0.06);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(left + w*0.96, top + h*0.44);
+    ctx.lineTo(left + w*0.86, baseY - h*0.06);
+    ctx.stroke();
+
+    /* Cañones */
+    ctx.fillStyle = '#1a1a24';
+    var cannonW = w*0.06;
+    var cannonH = h*0.20;
+    roundRect(left - w*0.12, top + h*0.34, cannonW, cannonH, cannonW*0.4);
+    ctx.fill();
+    roundRect(left + w*1.06, top + h*0.34, cannonW, cannonH, cannonW*0.4);
+    ctx.fill();
+    ctx.fillStyle = isPlayer ? '#7dd3fc' : '#ffd93d';
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.shadowBlur = Math.max(4, w*0.10);
+    ctx.beginPath();
+    ctx.arc(left - w*0.12 + cannonW*0.5, top + h*0.34, Math.max(1.5, w*0.020), 0, Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(left + w*1.06 + cannonW*0.5, top + h*0.34, Math.max(1.5, w*0.020), 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    /* Cuerpo principal */
+    var bg = ctx.createLinearGradient(left, 0, left + w, 0);
+    bg.addColorStop(0,    shade(color, -75));
+    bg.addColorStop(0.12, shade(color, -25));
+    bg.addColorStop(0.40, shade(color, 70));
+    bg.addColorStop(0.55, shade(color, 45));
+    bg.addColorStop(0.85, shade(color, -25));
+    bg.addColorStop(1,    shade(color, -75));
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.moveTo(cx, top);
+    ctx.lineTo(left + w*0.68, top + h*0.24);
+    ctx.lineTo(left + w*0.84, top + h*0.55);
+    ctx.lineTo(left + w*0.80, baseY - h*0.03);
+    ctx.lineTo(left + w*0.62, baseY);
+    ctx.lineTo(left + w*0.38, baseY);
+    ctx.lineTo(left + w*0.20, baseY - h*0.03);
+    ctx.lineTo(left + w*0.16, top + h*0.55);
+    ctx.lineTo(left + w*0.32, top + h*0.24);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(0,0,0,.55)';
+    ctx.lineWidth = Math.max(1, w*0.012);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255,255,255,.22)';
+    ctx.lineWidth = Math.max(0.6, w*0.008);
+    ctx.beginPath();
+    ctx.moveTo(cx, top + h*0.05);
+    ctx.lineTo(cx, baseY - h*0.04);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(0,0,0,.30)';
+    ctx.lineWidth = Math.max(0.5, w*0.007);
+    ctx.beginPath();
+    ctx.moveTo(left + w*0.30, top + h*0.30);
+    ctx.lineTo(left + w*0.24, baseY - h*0.08);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(left + w*0.70, top + h*0.30);
+    ctx.lineTo(left + w*0.76, baseY - h*0.08);
+    ctx.stroke();
+
+    /* Cabina */
+    var cockX = cx, cockY = top + h*0.36, cockW = w*0.42, cockH = h*0.28;
+    var cg = ctx.createRadialGradient(cockX - cockW*0.2, cockY - cockH*0.1, cockW*0.05, cockX, cockY, cockW*0.55);
+    if (isPlayer){
+      cg.addColorStop(0, 'rgba(220,250,255,1)');
+      cg.addColorStop(0.35, 'rgba(100,200,255,.95)');
+      cg.addColorStop(0.75, 'rgba(30,90,180,.95)');
+      cg.addColorStop(1, 'rgba(10,30,70,1)');
+    } else {
+      cg.addColorStop(0, 'rgba(255,250,230,1)');
+      cg.addColorStop(0.35, 'rgba(255,200,110,.95)');
+      cg.addColorStop(0.75, 'rgba(200,90,30,.95)');
+      cg.addColorStop(1, 'rgba(90,25,10,1)');
+    }
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.ellipse(cockX, cockY, cockW*0.5, cockH*0.5, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(220,235,255,.75)';
+    ctx.lineWidth = Math.max(1, w*0.012);
+    ctx.beginPath();
+    ctx.ellipse(cockX, cockY, cockW*0.5, cockH*0.5, 0, 0, Math.PI*2);
+    ctx.stroke();
+
+    ctx.strokeStyle = isPlayer ? 'rgba(180,240,255,.7)' : 'rgba(255,220,150,.6)';
+    ctx.lineWidth = Math.max(0.7, w*0.007);
+    ctx.beginPath();
+    ctx.moveTo(cockX - cockW*0.28, cockY + cockH*0.05);
+    ctx.lineTo(cockX + cockW*0.28, cockY + cockH*0.05);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255,255,255,.65)';
+    ctx.beginPath();
+    ctx.ellipse(cockX - cockW*0.20, cockY - cockH*0.18, cockW*0.14, cockH*0.10, -0.3, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    ctx.beginPath();
+    ctx.ellipse(cockX - cockW*0.22, cockY - cockH*0.22, cockW*0.05, cockH*0.04, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    /* Propulsores */
+    var tW = w*0.20, tH = h*0.16;
+    var thrX = [-w*0.26, w*0.26];
+    for (var ti = 0; ti < thrX.length; ti++){
+      var tx = cx + thrX[ti];
+      ctx.fillStyle = '#0c0c14';
+      roundRect(tx - tW/2 - w*0.02, baseY - tH - h*0.01, tW + w*0.04, tH + h*0.02, tW*0.35);
+      ctx.fill();
+      ctx.fillStyle = '#26262f';
+      roundRect(tx - tW/2, baseY - tH, tW, tH, tW*0.32);
+      ctx.fill();
+      var tgr = ctx.createRadialGradient(tx, baseY - tH*0.5, tW*0.05, tx, baseY - tH*0.5, tW*0.55);
+      if (isPlayer){
+        tgr.addColorStop(0, 'rgba(240,250,255,1)');
+        tgr.addColorStop(0.55, 'rgba(120,210,255,1)');
+        tgr.addColorStop(1, 'rgba(40,110,220,.7)');
+      } else {
+        tgr.addColorStop(0, 'rgba(255,250,220,1)');
+        tgr.addColorStop(0.55, 'rgba(255,190,90,1)');
+        tgr.addColorStop(1, 'rgba(220,90,30,.7)');
+      }
+      ctx.fillStyle = tgr;
+      ctx.beginPath();
+      ctx.ellipse(tx, baseY - tH*0.5, tW*0.36, tH*0.42, 0, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.strokeStyle = isPlayer ? 'rgba(180,230,255,.85)' : 'rgba(255,220,150,.85)';
+      ctx.lineWidth = Math.max(0.7, w*0.006);
+      ctx.beginPath();
+      ctx.ellipse(tx, baseY - tH*0.5, tW*0.22, tH*0.28, 0, 0, Math.PI*2);
+      ctx.stroke();
+    }
+
+    /* Luces traseras */
+    ctx.fillStyle = isPlayer ? '#7dd3fc' : '#ffd93d';
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.shadowBlur = Math.max(4, w*0.14);
+    ctx.beginPath();
+    ctx.arc(left + w*0.26, baseY - h*0.44, Math.max(1.5, w*0.020), 0, Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(left + w*0.74, baseY - h*0.44, Math.max(1.5, w*0.020), 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    if (isPlayer){
+      ctx.fillStyle = 'rgba(255,255,255,.55)';
+      ctx.fillRect(left + w*0.44, top + h*0.62, w*0.025, h*0.28);
+      ctx.fillRect(left + w*0.535, top + h*0.62, w*0.025, h*0.28);
+
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.font = '900 ' + Math.max(8, w*0.13) + 'px "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('01', cx, baseY - h*0.16);
+      ctx.textBaseline = 'alphabetic';
+    } else {
+      ctx.fillStyle = shade(color, -30);
+      roundRect(left + w*0.20, top + h*0.16, w*0.60, h*0.06, h*0.02);
+      ctx.fill();
+    }
+  }
+
+  function drawFinishBand(z){
+    if (z < 700) return;
+    var p1 = proj(z), p2 = proj(z + 700);
+    if (p1.y < HORIZON - 20) return;
+    var hw1 = halfRoad(p1.scale), hw2 = halfRoad(p2.scale);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(W/2 - hw2, p2.y); ctx.lineTo(W/2 + hw2, p2.y);
+    ctx.lineTo(W/2 + hw1, p1.y); ctx.lineTo(W/2 - hw1, p1.y);
+    ctx.closePath(); ctx.clip();
+    var cols = 16, rows = 2, yTop = p2.y, yBot = p1.y;
+    for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++){
+      ctx.fillStyle = ((r+c)%2 === 0) ? '#7dd3fc' : '#0a0a2a';
+      var x0 = W/2 - hw1 + (2*hw1)*c/cols, x1 = W/2 - hw1 + (2*hw1)*(c+1)/cols;
+      var yy0 = yTop + (yBot - yTop)*r/rows, yy1 = yTop + (yBot - yTop)*(r+1)/rows;
+      ctx.fillRect(x0, yy0, (x1-x0)+0.6, (yy1-yy0)+0.6);
+    }
+    ctx.restore();
+  }
+  function drawGantry(z){
+    if (z < 900) return;
+    var p = proj(z), s = p.scale;
+    var yTop = HORIZON - s * (2700 - CAM_HEIGHT) * (H/2);
+    var yBase = p.y;
+    var xL = screenX(-(ROAD_HW + 260), s), xR = screenX((ROAD_HW + 260), s);
+    var pw = Math.max(1.4, s * 95 * (W/2));
+    ctx.fillStyle = '#7dd3fc';
+    ctx.shadowColor = '#7dd3fc';
+    ctx.shadowBlur = Math.max(2, s * 60);
+    ctx.fillRect(xL - pw/2, yTop, pw, yBase - yTop);
+    ctx.fillRect(xR - pw/2, yTop, pw, yBase - yTop);
+    ctx.shadowBlur = 0;
+    var bh = Math.max(3, s * 760 * (H/2)), bw = xR - xL;
+    if (bw > 4 && bh > 1){
+      var cols = 12, rows = 2;
+      for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++){
+        ctx.fillStyle = ((r+c)%2 === 0) ? '#7dd3fc' : '#0a0a2a';
+        ctx.fillRect(xL + bw*c/cols, yTop + bh*r/rows, bw/cols + 0.5, bh/rows + 0.5);
+      }
+    }
+  }
+
+  function drawRoad(){
+    drawSpace();
+    var zF = DRAW_SEGMENTS * SEG_LEN, pF = proj(zF), hwF = halfRoad(pF.scale);
+    ctx.fillStyle = '#0a0a1a';
+    ctx.beginPath();
+    ctx.moveTo(W/2 - 1.5, HORIZON); ctx.lineTo(W/2 + 1.5, HORIZON);
+    ctx.lineTo(W/2 + hwF, pF.y); ctx.lineTo(W/2 - hwF, pF.y);
+    ctx.closePath(); ctx.fill();
+
+    for (var i = DRAW_SEGMENTS - 1; i >= 2; i--){
+      var z1 = i * SEG_LEN, z2 = z1 + SEG_LEN;
+      var p1 = proj(z1), p2 = proj(z2);
+      if (p2.y > H + 30) continue;
+      var hw1 = halfRoad(p1.scale), hw2 = halfRoad(p2.scale);
+      var rw1 = halfRumble(p1.scale), rw2 = halfRumble(p2.scale);
+
+      var pat = Math.floor((z1 + roadScroll) / 400) % 2;
+      ctx.fillStyle = pat === 0 ? '#15152a' : '#101024';
+      ctx.beginPath();
+      ctx.moveTo(W/2 - hw2, p2.y); ctx.lineTo(W/2 + hw2, p2.y);
+      ctx.lineTo(W/2 + hw1, p1.y); ctx.lineTo(W/2 - hw1, p1.y);
+      ctx.closePath(); ctx.fill();
+
+      var rpat = Math.floor((z1 + roadScroll) / 600) % 2;
+      ctx.fillStyle = rpat === 0 ? '#7dd3fc' : '#c084fc';
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.shadowBlur = Math.max(0, 8 * p1.scale * 4);
+      ctx.beginPath();
+      ctx.moveTo(W/2 - rw2, p2.y); ctx.lineTo(W/2 - hw2, p2.y);
+      ctx.lineTo(W/2 - hw1, p1.y); ctx.lineTo(W/2 - rw1, p1.y);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(W/2 + hw2, p2.y); ctx.lineTo(W/2 + rw2, p2.y);
+      ctx.lineTo(W/2 + rw1, p1.y); ctx.lineTo(W/2 + hw1, p1.y);
+      ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      if (Math.floor((z1 + roadScroll) / 500) % 2 === 0){
+        var lw1 = p1.scale * 42 * (W/2), lw2 = p2.scale * 42 * (W/2);
+        ctx.fillStyle = 'rgba(125,211,252,.55)';
+        ctx.beginPath();
+        ctx.moveTo(W/2 - lw2, p2.y); ctx.lineTo(W/2 + lw2, p2.y);
+        ctx.lineTo(W/2 + lw1, p1.y); ctx.lineTo(W/2 - lw1, p1.y);
+        ctx.closePath(); ctx.fill();
+      }
+
+      var k = Math.ceil((z1 + roadScroll) / 3000);
+      var astZ = k * 3000 - roadScroll;
+      if (astZ >= z1 && astZ < z2){
+        var pT = proj(astZ), off = ROAD_HW + 780;
+        drawAsteroid(screenX(-off, pT.scale), pT.y, pT.scale);
+        drawAsteroid(screenX( off, pT.scale), pT.y, pT.scale);
+      }
+    }
+
+    if (state === 'finish' && finishZ > 700){ drawFinishBand(finishZ); drawGantry(finishZ); }
+  }
+
+  function drawParticles(){
+    for (var i = 0; i < particles.length; i++){
+      var p = particles[i];
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * (0.35 + p.life*0.65), 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function draw(){
+    ctx.save();
+    if (shake > 0){
+      var s = shake * 16;
+      ctx.translate((Math.random()-0.5)*s, (Math.random()-0.5)*s);
+    }
+    drawRoad();
+
+    var sortedAst = roadAsteroids.slice().sort(function(a, b){ return b.z - a.z; });
+    for (var i = 0; i < sortedAst.length; i++) drawRoadAsteroid(sortedAst[i]);
+
+    if (rival && state !== 'crash' && rival.z > 780){
+      var p = proj(rival.z);
+      drawShip(screenX(rival.x, p.scale), p.y,
+        CAR_W_WORLD * p.scale * (W/2), CAR_H_WORLD * p.scale * (H/2),
+        rival.color, false);
+    }
+    if (state !== 'crash'){
+      var pp = proj(PLAYER_Z);
+      drawShip(screenX(player.x, pp.scale), pp.y,
+        CAR_W_WORLD * pp.scale * (W/2), CAR_H_WORLD * pp.scale * (H/2),
+        '#e63946', true);
+    }
+    drawParticles();
+    ctx.restore();
+
+    if (state === 'crash' && shake > 0.25){
+      ctx.fillStyle = 'rgba(255,80,60,' + ((shake-0.25)*0.45) + ')';
+      ctx.fillRect(0, 0, W, H);
+    }
+    if (state === 'crash' && crashTimer > 0.9){
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (crashTimer - 0.9) * 4);
+      ctx.font = '900 46px Segoe UI, sans-serif';
+      ctx.textAlign = 'center'; ctx.lineWidth = 7;
+      ctx.strokeStyle = 'rgba(0,0,0,.85)';
+      ctx.strokeText('-5 PTS', W/2, 220);
+      ctx.fillStyle = '#ff4d4d';
+      ctx.fillText('-5 PTS', W/2, 220);
+      ctx.restore();
+    }
+  }
+
+  var lastTime = performance.now();
+  function loop(now){
+    var dt = (now - lastTime)/1000; lastTime = now;
+    dt = Math.min(dt, 0.05);
+    update(dt); draw();
+    requestAnimationFrame(loop);
+  }
+
+  document.addEventListener('keydown', function(e){
+    var k = e.key.toLowerCase();
+    if (k === 'arrowleft' || k === 'a'){ keys.left = true; e.preventDefault(); }
+    if (k === 'arrowright' || k === 'd'){ keys.right = true; e.preventDefault(); }
+  });
+  document.addEventListener('keyup', function(e){
+    var k = e.key.toLowerCase();
+    if (k === 'arrowleft' || k === 'a') keys.left = false;
+    if (k === 'arrowright' || k === 'd') keys.right = false;
+  });
+  function canvasXFromEvent(e){
+    var rect = canvas.getBoundingClientRect();
+    return (e.clientX - rect.left) * (W / rect.width);
+  }
+  canvas.addEventListener('pointerdown', function(e){
+    pointerActive = true; pointerX = canvasXFromEvent(e);
+    try { canvas.setPointerCapture(e.pointerId); } catch(_){}
+  });
+  canvas.addEventListener('pointermove', function(e){ if (pointerActive) pointerX = canvasXFromEvent(e); });
+  canvas.addEventListener('pointerup',     function(){ pointerActive = false; });
+  canvas.addEventListener('pointercancel', function(){ pointerActive = false; });
+  canvas.addEventListener('pointerleave',  function(){ pointerActive = false; });
+
+  var nameInput = document.getElementById('playerNameInput');
+  nameInput.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') document.getElementById('startBtn').click();
+  });
+
+  document.getElementById('startBtn').addEventListener('click', function(){
+    playerName = nameInput.value.trim().slice(0, 20) || 'Piloto';
+    reset();
+  });
+
+  document.getElementById('endBtn').addEventListener('click', function(){
+    document.getElementById('endOverlay').classList.add('hidden');
+    document.getElementById('startOverlay').classList.remove('hidden');
+    state = 'start';
+    player = { x: 0 }; rival = null; particles = [];
+    roadAsteroids = [];
+    elapsed = 0; crashes = 0; asteroidHits = 0; qIndex = 0; roadScroll = 0; shake = 0;
+    finishZ = 0; passAnim = null;
+    updateHUD();
+  });
+
+  document.getElementById('shareLinkBtn').addEventListener('click', async function(){
+    var base = location.href.split('?')[0].split('#')[0];
+    var cfgEnc = encodeConfig(CONFIG);
+    var link = base + '?mode=user&cfg=' + cfgEnc;
+    var ok = await copyToClipboard(link);
+    var b = document.getElementById('shareLinkBtn');
+    var old = b.textContent;
+    b.textContent = ok ? '✅ ¡Copiado!' : '⚠️ Selecciónalo';
+    if (!ok) prompt('Copia este link:', link);
+    setTimeout(function(){ b.textContent = old; }, 1800);
+  });
+
+  function drawScoreCard(name, score, time, crashes, hits, won){
+    var c = document.getElementById('shotCanvas');
+    var g = c.getContext('2d');
+    var SW = c.width, SH = c.height;
+
+    var bg = g.createLinearGradient(0, 0, 0, SH);
+    bg.addColorStop(0, '#0a0a22');
+    bg.addColorStop(0.5, '#0f0f30');
+    bg.addColorStop(1, '#1a0a3a');
+    g.fillStyle = bg;
+    g.fillRect(0, 0, SW, SH);
+
+    var seed = 777;
+    var rand = function(){ seed = (seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
+    for (var i = 0; i < 120; i++){
+      var x = rand()*SW, y = rand()*SH;
+      var r = 0.4 + rand()*1.6;
+      g.fillStyle = 'rgba(255,255,255,' + (0.3+rand()*0.7) + ')';
+      g.beginPath(); g.arc(x, y, r, 0, Math.PI*2); g.fill();
+    }
+
+    var n1 = g.createRadialGradient(SW*0.15, SH*0.2, 20, SW*0.15, SH*0.2, 260);
+    n1.addColorStop(0, 'rgba(125,211,252,.15)');
+    n1.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = n1; g.fillRect(0, 0, SW, SH);
+    var n2 = g.createRadialGradient(SW*0.85, SH*0.8, 20, SW*0.85, SH*0.8, 260);
+    n2.addColorStop(0, 'rgba(192,132,252,.15)');
+    n2.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = n2; g.fillRect(0, 0, SW, SH);
+
+    g.strokeStyle = 'rgba(125,211,252,.35)';
+    g.lineWidth = 2;
+    g.strokeRect(8, 8, SW-16, SH-16);
+
+    g.fillStyle = '#7dd3fc';
+    g.font = '800 13px "Segoe UI", system-ui, sans-serif';
+    g.textAlign = 'center';
+    g.fillText('· CARRERA ESPACIAL ·', SW/2, 32);
+
+    g.font = '44px "Segoe UI", system-ui, sans-serif';
+    g.fillStyle = '#fff';
+    g.fillText(won ? '🏆' : '💥', SW/2, 82);
+
+    g.font = '900 22px "Segoe UI", system-ui, sans-serif';
+    g.fillStyle = '#fff';
+    g.fillText(won ? '¡MISIÓN COMPLETADA!' : 'MISIÓN FALLIDA', SW/2, 122);
+
+    g.font = '800 16px "Segoe UI", system-ui, sans-serif';
+    g.fillStyle = '#7dd3fc';
+    g.fillText('Piloto: ' + name, SW/2, 152);
+
+    var boxW = SW * 0.55, boxH = 90;
+    var boxX = (SW - boxW)/2, boxY = 172;
+    var boxGrad = g.createLinearGradient(boxX, boxY, boxX, boxY+boxH);
+    boxGrad.addColorStop(0, 'rgba(255,217,61,.15)');
+    boxGrad.addColorStop(1, 'rgba(255,217,61,.03)');
+    g.fillStyle = boxGrad;
+    g.beginPath();
+    var rr = 14;
+    g.moveTo(boxX+rr, boxY);
+    g.arcTo(boxX+boxW, boxY, boxX+boxW, boxY+boxH, rr);
+    g.arcTo(boxX+boxW, boxY+boxH, boxX, boxY+boxH, rr);
+    g.arcTo(boxX, boxY+boxH, boxX, boxY, rr);
+    g.arcTo(boxX, boxY, boxX+boxW, boxY, rr);
+    g.closePath();
+    g.fill();
+    g.strokeStyle = 'rgba(255,217,61,.45)';
+    g.lineWidth = 1.5;
+    g.stroke();
+
+    g.font = '900 44px "Segoe UI", system-ui, sans-serif';
+    g.fillStyle = '#ffd93d';
+    g.fillText(score + ' pts', SW/2, boxY + 56);
+
+    g.font = '700 13px "Segoe UI", system-ui, sans-serif';
+    g.fillStyle = '#c8d4e4';
+    g.fillText('Tiempo: ' + time.toFixed(1) + 's  ·  Choques: ' + crashes + '  ·  Asteroides: ' + hits, SW/2, boxY + 80);
+
+    g.font = '600 11px "Segoe UI", system-ui, sans-serif';
+    g.fillStyle = '#7d8ba0';
+    g.fillText('(tiempo × 10) − (choques × 5) − asteroides', SW/2, SH - 32);
+
+    var d = new Date();
+    g.font = '600 10px "Segoe UI", system-ui, sans-serif';
+    g.fillStyle = 'rgba(160,175,200,.7)';
+    g.fillText(d.toLocaleDateString() + ' · ' + d.toLocaleTimeString().slice(0,5), SW/2, SH - 14);
+  }
+
+  document.getElementById('shotBtn').addEventListener('click', function(){
+    drawScoreCard(playerName || 'Piloto', currentPoints(), elapsed, crashes, asteroidHits, true);
+    document.getElementById('shotOverlay').classList.remove('hidden');
+    if (navigator.canShare && navigator.canShare({ files: [new File([new Blob()], 'x.png', { type: 'image/png' })] })) {
+      document.getElementById('shareShotBtn').style.display = 'inline-flex';
+    }
+  });
+
+  document.getElementById('closeShotBtn').addEventListener('click', function(){
+    document.getElementById('shotOverlay').classList.add('hidden');
+  });
+
+  document.getElementById('downloadShotBtn').addEventListener('click', function(){
+    var c = document.getElementById('shotCanvas');
+    var a = document.createElement('a');
+    a.download = 'carrera-espacial-' + (playerName||'piloto') + '-' + currentPoints() + 'pts.png';
+    a.href = c.toDataURL('image/png');
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  });
+
+  document.getElementById('shareShotBtn').addEventListener('click', async function(){
+    var c = document.getElementById('shotCanvas');
+    c.toBlob(async function(blob){
+      var file = new File([blob], 'puntaje.png', { type: 'image/png' });
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'Mi puntaje · Carrera Espacial',
+          text: '¡Hice ' + currentPoints() + ' puntos en Carrera Espacial! 🚀'
+        });
+      } catch(_){}
+    });
+  });
+
+  player = { x: 0 }; rival = null; particles = [];
+  roadAsteroids = []; nextAstSpawn = 1.5;
+  elapsed = 0; crashes = 0; asteroidHits = 0; qIndex = 0;
+  questions = (CONFIG.questions || DEFAULT_QUESTIONS).slice();
+  roadScroll = 0; spawnTimer = 0; shake = 0;
+  crashTimer = 0; finishZ = 0; passAnim = null;
+
+  if (CONFIG.maxTime > 0){
+    document.getElementById('infoBoxStart').innerHTML +=
+      '<br><b>Tiempo máximo:</b> ' + CONFIG.maxTime + ' segundos';
+  }
+
+  requestAnimationFrame(loop);
+}
+
+/* =========================================================
+   PARSERS
+   ========================================================= */
+function parseCSVLine(line){
+  var out = []; var cur = '', inQuote = false;
+  for (var i = 0; i < line.length; i++){
+    var ch = line[i];
+    if (inQuote){
+      if (ch === '"' && line[i+1] === '"'){ cur += '"'; i++; }
+      else if (ch === '"') inQuote = false;
+      else cur += ch;
+    } else {
+      if (ch === '"') inQuote = true;
+      else if (ch === ',' || ch === ';'){ out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+  }
+  out.push(cur); return out;
+}
+
+function parseCSV(text){
+  var lines = text.replace(/^\uFEFF/, '').trim().split(/\r?\n/).filter(function(l){ return l.trim(); });
+  return parseRows(lines.map(function(l){ return parseCSVLine(l); }));
+}
+
+function parseRows(rows){
+  if (!rows || rows.length < 2) return { error: 'El archivo debe tener al menos una pregunta.' };
+
+  var start = 0;
+  var first = String(rows[0][0] || '').toLowerCase().trim();
+  if (first.indexOf('pregunta') !== -1 || first === 'q') start = 1;
+
+  var result = [];
+  for (var i = start; i < rows.length && result.length < 10; i++){
+    var cols = (rows[i] || []).map(function(c){ return String(c == null ? '' : c).trim(); });
+    if (cols.length < 6) continue;
+    if (!cols[0] || !cols[1] || !cols[2] || !cols[3] || !cols[4]) continue;
+
+    var cRaw = (cols[5] || '').trim();
+    var correct = -1;
+    if (/^[1-4]$/.test(cRaw)) correct = parseInt(cRaw, 10) - 1;
+    else if (/^[a-dA-D]$/.test(cRaw)) correct = cRaw.toUpperCase().charCodeAt(0) - 65;
+    if (correct < 0) continue;
+
+    result.push({
+      q: cols[0],
+      options: [cols[1], cols[2], cols[3], cols[4]],
+      correct: correct,
+      explain: cols[6] || ('Respuesta correcta: ' + cols[correct + 1])
+    });
+  }
+
+  if (result.length === 0) return { error: 'No se encontraron preguntas válidas.' };
+  return { questions: result };
+}
+
+/* =========================================================
+   PLANTILLA EXCEL
+   ========================================================= */
+function downloadExcelTemplate(){
+  var rows = [
+    ['Pregunta','Opcion1','Opcion2','Opcion3','Opcion4','Correcta','Explicacion'],
+    ['¿Cuál es el animal más grande del mundo?','El elefante','La ballena azul','El tiburón','La jirafa',2,'La ballena azul puede medir 30 metros'],
+    ['¿Cuántas patas tiene una araña?','4','6','8','10',3,'Las arañas son arácnidos y tienen 8 patas'],
+    ['¿Qué animal cambia de color?','El pingüino','El camaleón','El delfín','La tortuga',2,'El camaleón se camufla cambiando de color'],
+    ['¿Cuál es el mamífero más grande?','El elefante','El rinoceronte','La ballena azul','El hipopótamo',3,'La ballena azul es el mamífero más grande'],
+    ['¿Qué animal vive en el Polo Norte?','El pingüino','El oso polar','El koala','La jirafa',2,'El oso polar vive en el Ártico'],
+    ['¿Cuántos corazones tiene un pulpo?','1','2','3','4',3,'Los pulpos tienen 3 corazones'],
+    ['¿Qué animal es el más rápido?','El guepardo','El halcón peregrino','El león','El caballo',2,'El halcón peregrino alcanza 389 km/h'],
+    ['¿Los delfines son mamíferos?','Sí','No','Solo algunos','Solo crías',1,'Los delfines son mamíferos acuáticos'],
+    ['¿Cuánto vive una tortuga gigante?','10 años','50 años','100 años','+150 años',4,'Algunas viven más de 150 años'],
+    ['¿Qué comen las abejas?','Carne','Hojas','Néctar y polen','Frutos secos',3,'Las abejas se alimentan de néctar y polen']
+  ];
+
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [
+    { wch: 46 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 22 },
+    { wch: 10 }, { wch: 55 }
+  ];
+
+  var headerStyle = {
+    font: { bold: true, color: { rgb: 'FFFFFF' } },
+    fill: { fgColor: { rgb: '2F5597' } },
+    alignment: { horizontal: 'center', vertical: 'center' }
+  };
+  ['A1','B1','C1','D1','E1','F1','G1'].forEach(function(cell){
+    if (!ws[cell]) ws[cell] = {};
+    ws[cell].s = headerStyle;
+  });
+
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'plantilla-preguntas');
+  XLSX.writeFile(wb, 'plantilla-preguntas.xlsx');
+}
+</script>
+</body>
+</html>
